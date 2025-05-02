@@ -1,130 +1,160 @@
-# precommit-tag-cleaner
 
-Git pre-commit hook that automatically removes tagged comments (e.g. `//#PL: ... #/`) from staged files before committing.
 
----
 
-## How it works
+##  `safe-commit/README.md` 
 
-This hook:
 
-1. Collects staged files (`git diff --cached`),
-2. Removes tagged comments (e.g. `//#PL:`),
-3. Removes leftover empty comments and lines,
-4. Adds the cleaned version to the commit,
-5. Restores your local version — so your working files remain **unchanged**.
+#  safe-commit
 
----
+`safe-commit.js` is a commit helper script that removes inline comments marked as `//#PL: ... #/` **before committing**, and **restores them locally** afterward.
 
-## Installation
-
-1. Clone this repo or copy the `hooks/` folder to the root of your project.
-2. Tell Git to use the custom hook path:
-
-   ```bash
-   git config core.hooksPath hooks
-   ```
-
-3. Make sure the `hooks/pre-commit` file is executable:
-
-   ```bash
-   chmod +x hooks/pre-commit   # For Linux/macOS only
-   ```
+This allows you to:
+- keep personal or temporary notes in your working directory
+- make clean commits to your Git history (e.g., for GitHub)
+- avoid accidentally pushing internal comments
 
 ---
 
-## Tag configuration
+##  Folder structure
 
-Edit the `cleaner-config.json` file in the project root directory.
+```md
 
-To add new comment tags (e.g. `//#DEBUG:`), see the config guide:
- [README_config.md](./README_config.md)
+safe-commit/
+├── safe-commit.js           ← main logic
+├── cleaner-config.json      ← patterns for removing comments
+└── README.md                ← this file
 
----
-
-## Testing the cleaner
-
-Test files and a script are located in the `test/` folder:
-
-```powershell
-./test/run-test.ps1
 ```
 
-The script will:
+---
 
-- Run the same cleaning logic as the hook,
-- Compare the result with `expected_output.*` files,
-- Show a table of differences if something fails,
-- Save the actual cleaned output to `test/output/actual_output.*` for inspection.
+##  Setup
 
-You can compare these outputs manually or with a diff tool.
+1. Copy the `safe-commit/` folder into your project root
+2. Add to your `package.json`:
+
+```json
+"scripts": {
+  "safe-commit": "node safe-commit/safe-commit.js"
+}
+```
+
+3. Ensure your `package.json` includes:
+
+```json
+"type": "module"
+```
+
+(if you're using ES modules)
 
 ---
 
-## Run tests via npm
+##  Usage
 
-If you want to run the test script with `npm`:
+```bash
+# Stage changes
+git add .
 
-1. Create a `package.json` file in the root folder:
+# Make a safe commit without Polish inline comments
+npm run safe-commit -- --message "feat: added button component"
+```
 
-   ```bash
-   npm init -y
-   ```
-
-2. Add this to your `package.json`:
-   - For Windows (default PowerShell):
-
-     ```json
-     "scripts": {
-       "test": "powershell -ExecutionPolicy Bypass -File ./test/run-test.ps1"
-     }
-     ```
-
-   - For macOS/Linux (with PowerShell Core installed):
-
-     ```json
-     "scripts": {
-       "test": "pwsh ./test/run-test.ps1"
-     }
-     ```
-
-3. Run tests using:
-
-   ```bash
-   npm run test
-   ```
-
-Make sure the correct PowerShell (`powershell` or `pwsh`) is available in your environment. (`pwsh`) installed and accessible from your terminal.
+>  Comments will be removed from the commit, but restored in your working files immediately after.
 
 ---
 
-## Supported file types
+##  What gets removed?
 
-All file extensions listed in `cleaner-config.json`, e.g.:
+Only text **between the tags**:
 
-- `.js`, `.jsx`, `.ts`, `.tsx`
-- `.html`, `.css`, `.json`, `.yml`, `.yaml`, `.md`
+```
+  //#PL: temporary note #/
+```
 
----
+Supported in all comment types:
 
-## Example
+* `//` (inline)
+* `/* */` (block)
+* `{/* */}` (JSX)
+* `<!-- -->` (HTML)
 
-From:
+Examples:
 
 ```js
-const x = 1;  //#PL: temporary comment #/
-```
+const x = 1;  //#PL: remove this #/
 
-To:
+{/* //#PL: dev only #/ */}
 
-```js
-const x = 1;
+<!-- //#PL: temp note #/ -->
 ```
 
 ---
 
-## Note
+##  What stays?
 
-Comments are removed **only from staged files**.
+* Comments without `//#PL:` are left untouched
+* Comments with `//#PL:` are stripped **from the commit only**
+* Local files remain unchanged after the commit
 
-Your local files stay **unchanged** — the hook restores originals after staging the cleaned version.
+---
+
+##  CLI Options
+
+| Flag            | Description                                         |
+| --------------- | --------------------------------------------------- |
+| `--message`     |  Required commit message (`git commit -m "..."`)  |
+| `--dry-run`     |  Show what would be removed (no actual changes)   |
+| `--staged-only` |  Only process staged files (added with `git add`) |
+
+---
+
+##  Also removes empty comments
+
+After removing the `//#PL:` parts, it also cleans up empty comments like:
+
+* `/* */`
+* `{ }`
+* `<!-- -->`
+
+The logic is defined in `cleaner-config.json`.
+
+---
+
+##  Example config
+
+```json
+{
+  "extensions": ["js", "ts", "jsx", "tsx", "html", "css"],
+  "tagPatterns": [
+    "//#PL:.*?#\\/",
+    "/\\*\\s*//#PL:.*?#\\/\\s*\\*/",
+    "(?<=/\\*[^]*?)//#PL:.*?#\\/(?=[^]*?\\*/)",
+    "<!--\\s*//#PL:.*?#\\/\\s*-->",
+    "(?<=<!--[^]*?)//#PL:.*?#\\/(?=[^]*?-->)",
+    "\\{\\/\\*\\s*//#PL:.*?#\\/\\s*\\*\\/\\}",
+    "(?<=\\{\\/\\*[^]*?)//#PL:.*?#\\/(?=[^]*?\\*\\/\\})"
+  ],
+  "emptyCommentPatterns": [
+    "/\\*\\s*\\*/",
+    "\\{\\s*\\}",
+    "<!--\\s*-->"
+  ]
+}
+```
+
+---
+
+##  Status
+
+Fully tested on `.js`, `.jsx`, `.html`, `.css`
+Works on Windows and macOS, fully compatible with Git + VS Code
+
+---
+
+
+
+
+
+
+
+

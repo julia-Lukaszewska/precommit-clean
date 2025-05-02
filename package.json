@@ -1,10 +1,10 @@
 {
     "name": "precommit-tag-cleaner",
     "version": "1.0.0",
+    "type":"module",
     "description": "Git pre-commit hook that removes tagged comments like //#PL: ... #/",
     "scripts": {
-      "test": "powershell -ExecutionPolicy Bypass -File ./test/run-test.ps1"
-
+      "safe-commit": "node safe-commit/safe-commit.js"
     },
     "author": "",
     "license": "MIT"
