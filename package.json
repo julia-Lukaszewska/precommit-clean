@@ -1,0 +1,12 @@
+{
+    "name": "precommit-tag-cleaner",
+    "version": "1.0.0",
+    "description": "Git pre-commit hook that removes tagged comments like //#PL: ... #/",
+    "scripts": {
+      "test": "powershell -ExecutionPolicy Bypass -File ./test/run-test.ps1"
+
+    },
+    "author": "",
+    "license": "MIT"
+  }
+  
